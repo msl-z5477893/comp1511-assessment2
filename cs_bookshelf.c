@@ -1,9 +1,9 @@
-// Program name
+// CS BOOKSHELF
 //
-// This program was written by [your name] (z5555555)
-// on [date]
+// This program was written by Michael Stephen Lape (z5477893)
+// on 2023-07-18
 //
-// TODO: Description of program
+// Bookshelf software idk
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +23,7 @@
 enum book_genre {CLASSICS, FANTASY, MYSTERY, NON_FICTION, SCI_FI, INVALID};
 
 // TODO: Your #defines/enums can go here:
+#define MAX_CLI_CHARS 256
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -101,6 +102,8 @@ struct book *create_book(
     int pages_count
 );
 // TODO: Put your function prototypes here
+char* cli(void);
+void proc_cmd(char*);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -122,12 +125,12 @@ int main(void) {
 
 // STAGE 1.1
 
-// TODO what does this function do?
+// allocates a shelf in memory
 // 
 // Parameters:
-//      TODO
+//      name (char[]): name of shelf
 // Returns:
-//      TODO
+//      struct shelf *
 //
 struct shelf *create_shelf(char name[MAX_STR_LEN]) {
 
@@ -136,17 +139,26 @@ struct shelf *create_shelf(char name[MAX_STR_LEN]) {
     
     // hint: you will have to replace NULL in this return statement.
 
-    return NULL;
+    struct shelf *new_shelf;
+
+    new_shelf = malloc(sizeof(struct shelf));
+    strcpy(new_shelf->name, name); 
+    new_shelf->books = NULL;
+    new_shelf->next = NULL;
+
+
+    return new_shelf;
 }
 
 // STAGE 1.1
 
-// TODO what does this function do?
+// allocates book in memory
 // 
 // Parameters:
-//      TODO
+//      title (char[]): title of book
+//      author (char[]): author of book
 // Returns:
-//      TODO
+//      struct book *
 //
 struct book *create_book(
     char title[MAX_STR_LEN],
@@ -161,12 +173,43 @@ struct book *create_book(
     
     // hint: you will have to replace NULL in this return statement.
 
-    return NULL;
+    struct book *new_book = malloc(sizeof(struct book)); 
+
+    strcpy(new_book->title, title); 
+    strcpy(new_book->author, author); 
+    new_book->genre = genre;
+    new_book->rating = rating;
+    new_book->pages_count = pages_count;
+
+    return new_book;
 }
 
-// TODO: Put your functions here
+// STAGE 1.2
 
+// get user input
+// Returns:
+//     char *
+char *cli(void) {
+    char* i_buffer;
+    unsigned int i_buffer_size;
 
+    i_buffer_size = sizeof(char)*MAX_CLI_CHARS;
+    i_buffer = malloc(i_buffer_size); 
+    scanf(" %[^\n]", i_buffer); 
+
+    return i_buffer;
+}
+
+// processes cli command
+// Parameters:
+//     cli_input (char *): command entered by user
+void proc_cmd(char* cli_input) {
+    char cmd_char, *args;
+    sscanf(cli_input, " %c %[^\n]", &cmd_char, args); 
+    if (cmd_char == '?') {
+        print_usage();
+    }
+}
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  PROVIDED FUNCTIONS  ///////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
