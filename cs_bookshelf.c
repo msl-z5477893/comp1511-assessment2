@@ -118,6 +118,7 @@ int main(void) {
 
     // TODO: Start stage 1.2 here!
     while (running) {
+        printf("Enter command: "); 
         commandline = cli();
         running = proc_cmd(commandline); 
     }
@@ -198,15 +199,14 @@ struct book *create_book(
 // Returns:
 //     char *
 char *cli(void) {
-    char* i_buffer;
+    char* i_buffer, *fgets_res;
     unsigned int i_buffer_size;
-    int scanf_res;
 
     i_buffer_size = sizeof(char)*MAX_CLI_CHARS;
     i_buffer = malloc(i_buffer_size); 
-    scanf_res = scanf(" %[^\n]", i_buffer); 
+    fgets_res = fgets(i_buffer, MAX_CLI_CHARS, stdin);
 
-    if (scanf_res > 1) {
+    if (fgets_res  == NULL) {
         return NULL;
     }
 
@@ -218,6 +218,8 @@ char *cli(void) {
 //     cli_input (char *): command entered by user
 int proc_cmd(char* cli_input) {
     char cmd_char, *args;
+
+    args = NULL;
     if (cli_input == NULL) {
         return 0;
     }
