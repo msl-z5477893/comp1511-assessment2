@@ -103,16 +103,24 @@ struct book *create_book(
 );
 // TODO: Put your function prototypes here
 char* cli(void);
-void proc_cmd(char*);
+int proc_cmd(char*);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 int main(void) {
+    char *commandline;
+    int running;
 
+    running = 1;
+    commandline = NULL;
     printf("Welcome to Bookshelf Manager!\n");
 
     // TODO: Start stage 1.2 here!
+    while (running) {
+        commandline = cli();
+        running = proc_cmd(commandline); 
+    }
 
     printf("\nGoodbye\n");
 
@@ -192,10 +200,15 @@ struct book *create_book(
 char *cli(void) {
     char* i_buffer;
     unsigned int i_buffer_size;
+    int scanf_res;
 
     i_buffer_size = sizeof(char)*MAX_CLI_CHARS;
     i_buffer = malloc(i_buffer_size); 
-    scanf(" %[^\n]", i_buffer); 
+    scanf_res = scanf(" %[^\n]", i_buffer); 
+
+    if (scanf_res > 1) {
+        return NULL;
+    }
 
     return i_buffer;
 }
@@ -203,12 +216,16 @@ char *cli(void) {
 // processes cli command
 // Parameters:
 //     cli_input (char *): command entered by user
-void proc_cmd(char* cli_input) {
+int proc_cmd(char* cli_input) {
     char cmd_char, *args;
+    if (cli_input == NULL) {
+        return 0;
+    }
     sscanf(cli_input, " %c %[^\n]", &cmd_char, args); 
     if (cmd_char == '?') {
         print_usage();
     }
+    return 1;
 }
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  PROVIDED FUNCTIONS  ///////////////////////////////
