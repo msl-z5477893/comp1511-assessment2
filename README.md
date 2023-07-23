@@ -5,7 +5,7 @@ COMP1511 Assessment 2 - Bookshelf
 Status
 ------
 
-Stage 1 :heavy_chech_mark:
+Stage 1 :heavy_check_mark:
 
 ______________
 
