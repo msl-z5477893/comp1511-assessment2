@@ -9,7 +9,7 @@ Status
 - [x] Stage 1.1
 - [x] Stage 1.2
 - [x] Stage 1.3
-- [ ] Stage 1.4
+- [x] Stage 1.4
 - [ ] Stage 1.5
 
 - [ ] Stage 2.1

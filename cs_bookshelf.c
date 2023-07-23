@@ -319,7 +319,7 @@ void cmd_shelf_count_books(struct shelf *ptr_shelf) {
         printf("There is 1 book on this shelf!\n");
         return;
     }
-    count = 2;
+    count = 1;
     next_book = ptr_shelf->books->next;
     while (1) {
         if (next_book == NULL) {
@@ -327,6 +327,7 @@ void cmd_shelf_count_books(struct shelf *ptr_shelf) {
             return;
         }
         next_book = next_book->next;
+        count += 1;
     }
 }
 
