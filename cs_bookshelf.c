@@ -245,7 +245,7 @@ void cmd_add_book(char *data, struct shelf *ptr_shelf) {
   book_addr = book_eol(ptr_shelf->books);
   book_addr = new_book;
 
-  printf("Book: %s added!\n", book_addr->title);
+  printf("Book: '%s' added!\n", book_addr->title);
 }
 
 // helper function for finding the end-of-list in set of books
