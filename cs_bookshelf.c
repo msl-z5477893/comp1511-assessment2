@@ -91,7 +91,12 @@ int proc_cmd(char *, struct shelf *);
 
 // function prototypes for handling commandline functions
 void cmd_add_book(char *, struct shelf *);
+void cmd_print_bookshelf(struct shelf *);
+void cmd_shelf_count_books(struct shelf *);
+
+// user defined helper functions
 struct book *book_eol(struct book *);
+void add_to_shelf(struct shelf *, struct book *);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -173,7 +178,9 @@ struct book *create_book(char title[MAX_STR_LEN], char author[MAX_STR_LEN],
   strcpy(new_book->author, author);
   new_book->genre = genre;
   new_book->rating = rating;
+  new_book->pages_read = 0;
   new_book->pages_count = pages_count;
+  new_book->next = NULL;
 
   return new_book;
 }
@@ -219,6 +226,9 @@ int proc_cmd(char *cli_input, struct shelf *current_shelf) {
   if (cmd_char == 'a') {
     cmd_add_book(args, current_shelf);
   }
+  if (cmd_char == 'p') {
+    cmd_print_bookshelf(current_shelf);
+  }
 
   // if command is successfully parsed return true (1)
   return 1;
@@ -227,8 +237,11 @@ int proc_cmd(char *cli_input, struct shelf *current_shelf) {
 // STAGE 1.3
 
 // creates a book and appends it to head shelf.
+// Parameters:
+//     data (char *): provided data
+//     ptr_shelf (struct shelf *): shelf to operate on
 void cmd_add_book(char *data, struct shelf *ptr_shelf) {
-  struct book *new_book, *book_addr;
+  struct book *new_book;
   char *title, *author, *str_genre;
   enum book_genre genre;
   int rating, pages_count;
@@ -242,18 +255,73 @@ void cmd_add_book(char *data, struct shelf *ptr_shelf) {
 
   genre = string_to_genre(str_genre);
   new_book = create_book(title, author, genre, rating, pages_count);
-  book_addr = book_eol(ptr_shelf->books);
-  book_addr = new_book;
 
-  printf("Book: '%s' added!\n", book_addr->title);
+  // TODO: put book in shelf
+  add_to_shelf(ptr_shelf, new_book);
+
+  printf("Book: '%s' added!\n", new_book->title);
 }
 
-// helper function for finding the end-of-list in set of books
-struct book *book_eol(struct book *book_ptr) {
-  if (book_ptr == NULL) {
-    return book_ptr;
-  } else {
-    return book_eol(book_ptr->next);
+// helper function for adding book to shelf
+void add_to_shelf(struct shelf *used_shelf, struct book *added_book) {
+  struct book *first_book = used_shelf->books;
+  if (first_book == NULL) {
+    first_book = added_book;
+    // just to make sure
+    used_shelf->books = first_book;
+    return;
+  }
+  while (1) {
+    if (first_book->next == NULL) {
+      first_book->next = added_book;
+      return;
+    }
+    first_book = first_book->next;
+  }
+}
+
+// STAGE 1.4
+
+// print all books in selected bookshelf
+// Parameters:
+//     ptr_shelf (struct shelf *): selected shelf
+void cmd_print_bookshelf(struct shelf *ptr_shelf) {
+  struct book *current_book;
+
+  if (ptr_shelf->books == NULL) {
+    printf("There are no books on this shelf!\n");
+    return;
+  }
+  current_book = ptr_shelf->books;
+  while (1) {
+    if (current_book == NULL) {
+      return;
+    }
+    print_book(current_book);
+    current_book = current_book->next;
+  }
+}
+
+// STAGE 1.5
+void cmd_shelf_count_books(struct shelf *ptr_shelf) {
+  unsigned int count;
+  struct book *next_book;
+  if (ptr_shelf->books == NULL) {
+    printf("There are no books on this shelf!\n");
+    return;
+  }
+  if (ptr_shelf->books->next == NULL) {
+    printf("There is 1 book on this shelf!\n");
+    return;
+  }
+  count = 2;
+  next_book = ptr_shelf->books->next;
+  while (1) {
+    if (next_book == NULL) {
+      printf("There are %d books on this shelf!\n", count);
+      return;
+    }
+    next_book = next_book->next;
   }
 }
 
