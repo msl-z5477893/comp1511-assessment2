@@ -333,7 +333,7 @@ int check_book_in_shelf(struct shelf *shelf_checked, char *title,
     current_book = shelf_checked->books;
 
     while (current_book != NULL) {
-        if (!strcmp(current_book->author, author) &&
+        if (!strcmp(current_book->title, title) &&
             !strcmp(current_book->author, author)) {
             return 1;
         }
