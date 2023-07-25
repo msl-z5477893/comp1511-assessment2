@@ -86,8 +86,8 @@ struct shelf *create_shelf(char name[MAX_STR_LEN]);
 struct book *create_book(char title[MAX_STR_LEN], char author[MAX_STR_LEN],
                          enum book_genre genre, int rating, int pages_count);
 // TODO: Put your function prototypes here
-char *cli(void);
-int proc_cmd(char *, struct shelf *);
+char *cli(char *);
+int proc_cmd(char *, char *, struct shelf *);
 
 // function prototypes for handling commandline functions
 void cmd_add_book(char *, struct shelf *);
@@ -97,28 +97,37 @@ void cmd_shelf_count_books(struct shelf *);
 // user defined helper functions
 struct book *book_eol(struct book *);
 void add_to_shelf(struct shelf *, struct book *);
+int check_book_in_shelf(struct shelf *, char *, char *);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 int main(void) {
-    char *commandline;
+    char *commandline, *loop_check;
+    unsigned int buf_size;
     int running;
     struct shelf *head_shelf;
 
+    // init head shelf
     char init_shelf_name[MAX_STR_LEN] = "tbr";
     head_shelf = create_shelf(init_shelf_name);
-    running = 1;
-    commandline = NULL;
-    printf("Welcome to Bookshelf Manager!\n");
 
-    // TODO: Start stage 1.2 here!
+    // init cli buffer
+    buf_size = MAX_CLI_CHARS * sizeof(char);
+    commandline = malloc(buf_size); 
+    loop_check = NULL;
+
+    // start command loop
+    running = 1;
+    printf("Welcome to Bookshelf Manager!\n");
     while (running) {
         printf("Enter command: ");
-        commandline = cli();
-        running = proc_cmd(commandline, head_shelf);
+        loop_check = cli(commandline);
+        running = proc_cmd(commandline, loop_check, head_shelf);
     }
 
+    // free memory
+    free(commandline); 
     free(head_shelf);
 
     printf("\nGoodbye\n");
@@ -192,34 +201,27 @@ struct book *create_book(char title[MAX_STR_LEN], char author[MAX_STR_LEN],
 // get user input
 // Returns:
 //     char *
-char *cli(void) {
-    char *i_buffer, *fgets_res;
-    unsigned int i_buffer_size;
+char *cli(char *i_buffer) {
+    char *fgets_res;
 
-    i_buffer_size = sizeof(char) * MAX_CLI_CHARS;
-    i_buffer = malloc(i_buffer_size);
     fgets_res = fgets(i_buffer, MAX_CLI_CHARS, stdin);
-
-    if (fgets_res == NULL) {
-        return NULL;
-    }
-
-    return i_buffer;
+    return fgets_res;
 }
 
 // processes cli command
 // Parameters:
 //     cli_input (char *): command entered by user
 //     shelf (struct shelf *): shelf to operate on
-int proc_cmd(char *cli_input, struct shelf *current_shelf) {
+int proc_cmd(char *cli_input, char *loopback, struct shelf *current_shelf) {
     char cmd_char, *args;
+
+    // return false (0) if ctrl-d
+    if (loopback == NULL) {
+        return 0;
+    }
 
     args = malloc(MAX_CLI_CHARS);
 
-    // return false (0) if ctrl-d
-    if (cli_input == NULL) {
-        return 0;
-    }
     sscanf(cli_input, "%c %[^\n]", &cmd_char, args);
     // printf("%s\n", args);
     if (cmd_char == '?') {
@@ -235,11 +237,14 @@ int proc_cmd(char *cli_input, struct shelf *current_shelf) {
         cmd_shelf_count_books(current_shelf);
     }
 
+
     // if command is successfully parsed return true (1)
+    free(args);
     return 1;
 }
 
 // STAGE 1.3
+// STAGE 2.1 -- Addendum
 
 // creates a book and appends it to head shelf.
 // Parameters:
@@ -261,10 +266,45 @@ void cmd_add_book(char *data, struct shelf *ptr_shelf) {
     genre = string_to_genre(str_genre);
     new_book = create_book(title, author, genre, rating, pages_count);
 
-    // TODO: put book in shelf
+    // error checking
+    if (genre == INVALID) {
+        printf("ERROR: Invalid book genre\n");
+        free(title);
+        free(author);
+        free(str_genre);
+        return;
+    }
+    if (rating < 1 || rating > 5) {
+        printf("ERROR: Rating should be between 1 and 5\n");
+        free(title);
+        free(author);
+        free(str_genre);
+        return;
+    }
+    if (pages_count < 1) {
+        printf("ERROR: Page count should be positive\n");
+        free(title);
+        free(author);
+        free(str_genre);
+        return;
+    }
+    if (check_book_in_shelf(ptr_shelf, title, author)) {
+        printf("ERROR: a book with title: '%s' by '%s' already exists in this "
+               "shelf\n",
+               title, author);
+        free(title);
+        free(author);
+        free(str_genre);
+        return;
+    }
+
     add_to_shelf(ptr_shelf, new_book);
 
     printf("Book: '%s' added!\n", new_book->title);
+
+    free(title);
+    free(author);
+    free(str_genre);
 }
 
 // helper function for adding book to shelf
@@ -283,6 +323,24 @@ void add_to_shelf(struct shelf *used_shelf, struct book *added_book) {
         }
         first_book = first_book->next;
     }
+}
+
+// helper function for checking if book exists
+int check_book_in_shelf(struct shelf *shelf_checked, char *title,
+                        char *author) {
+    struct book *current_book;
+
+    current_book = shelf_checked->books;
+
+    while (current_book != NULL) {
+        if (!strcmp(current_book->author, author) &&
+            !strcmp(current_book->author, author)) {
+            return 1;
+        }
+        current_book = current_book->next;
+    }
+
+    return 0;
 }
 
 // STAGE 1.4
