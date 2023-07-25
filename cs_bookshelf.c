@@ -24,6 +24,7 @@ enum book_genre { CLASSICS, FANTASY, MYSTERY, NON_FICTION, SCI_FI, INVALID };
 
 // TODO: Your #defines/enums can go here:
 #define MAX_CLI_CHARS 256
+#define CMD_BOOK_APPEND -999999
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// USER DEFINED TYPES  ////////////////////////////////
@@ -90,13 +91,13 @@ char *cli(char *);
 int proc_cmd(char *, char *, struct shelf *);
 
 // function prototypes for handling commandline functions
-void cmd_add_book(char *, struct shelf *);
+void cmd_add_book(char *, int, struct shelf *);
 void cmd_print_bookshelf(struct shelf *);
 void cmd_shelf_count_books(struct shelf *);
 
 // user defined helper functions
 struct book *book_eol(struct book *);
-void add_to_shelf(struct shelf *, struct book *);
+void add_to_shelf(struct shelf *, struct book *, int);
 int check_book_in_shelf(struct shelf *, char *, char *);
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -114,7 +115,7 @@ int main(void) {
 
     // init cli buffer
     buf_size = MAX_CLI_CHARS * sizeof(char);
-    commandline = malloc(buf_size); 
+    commandline = malloc(buf_size);
     loop_check = NULL;
 
     // start command loop
@@ -127,7 +128,7 @@ int main(void) {
     }
 
     // free memory
-    free(commandline); 
+    free(commandline);
     free(head_shelf);
 
     printf("\nGoodbye\n");
@@ -228,7 +229,7 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf *current_shelf) {
         print_usage();
     }
     if (cmd_char == 'a') {
-        cmd_add_book(args, current_shelf);
+        cmd_add_book(args, CMD_BOOK_APPEND, current_shelf);
     }
     if (cmd_char == 'p') {
         cmd_print_bookshelf(current_shelf);
@@ -236,7 +237,9 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf *current_shelf) {
     if (cmd_char == 'c') {
         cmd_shelf_count_books(current_shelf);
     }
-
+    if (cmd_char == 'i') {
+        cmd_add_book(args, 0, current_shelf);
+    }
 
     // if command is successfully parsed return true (1)
     free(args);
@@ -244,84 +247,102 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf *current_shelf) {
 }
 
 // STAGE 1.3
-// STAGE 2.1 -- Addendum
+// STAGE 2.1 -- modified
+// STAGE 2.2 -- modified
 
 // creates a book and appends it to head shelf.
 // Parameters:
 //     data (char *): provided data
+//     position (int): book position, appended if -1
 //     ptr_shelf (struct shelf *): shelf to operate on
-void cmd_add_book(char *data, struct shelf *ptr_shelf) {
+void cmd_add_book(char *data, int position, struct shelf *ptr_shelf) {
     struct book *new_book;
-    char *title, *author, *str_genre;
     enum book_genre genre;
-    int rating, pages_count;
+    int rating, pages_count, pos;
 
-    title = malloc(MAX_STR_LEN);
-    author = malloc(MAX_STR_LEN);
-    str_genre = malloc(MAX_STR_LEN);
+    char title[MAX_STR_LEN] = "";
+    char author[MAX_STR_LEN] = "";
+    char str_genre[MAX_STR_LEN] = "";
 
-    sscanf(data, " %s %s %s %d %d", title, author, str_genre, &rating,
-           &pages_count);
+    if (position == CMD_BOOK_APPEND) {
+        sscanf(data, " %s %s %s %d %d", title, author, str_genre, &rating,
+               &pages_count);
+    } else {
+        sscanf(data, " %d %s %s %s %d %d", &pos, title, author, str_genre,
+               &rating, &pages_count);
+    }
 
     genre = string_to_genre(str_genre);
-    new_book = create_book(title, author, genre, rating, pages_count);
 
     // error checking
     if (genre == INVALID) {
         printf("ERROR: Invalid book genre\n");
-        free(title);
-        free(author);
-        free(str_genre);
         return;
     }
     if (rating < 1 || rating > 5) {
         printf("ERROR: Rating should be between 1 and 5\n");
-        free(title);
-        free(author);
-        free(str_genre);
         return;
     }
     if (pages_count < 1) {
         printf("ERROR: Page count should be positive\n");
-        free(title);
-        free(author);
-        free(str_genre);
         return;
     }
     if (check_book_in_shelf(ptr_shelf, title, author)) {
         printf("ERROR: a book with title: '%s' by '%s' already exists in this "
                "shelf\n",
                title, author);
-        free(title);
-        free(author);
-        free(str_genre);
         return;
     }
 
-    add_to_shelf(ptr_shelf, new_book);
-
+    new_book = create_book(title, author, genre, rating, pages_count);
+    add_to_shelf(ptr_shelf, new_book, pos);
     printf("Book: '%s' added!\n", new_book->title);
-
-    free(title);
-    free(author);
-    free(str_genre);
 }
 
 // helper function for adding book to shelf
-void add_to_shelf(struct shelf *used_shelf, struct book *added_book) {
+void add_to_shelf(struct shelf *used_shelf, struct book *added_book,
+                  int position) {
+    struct book *temp;
     struct book *first_book = used_shelf->books;
+
+    // if there is no books in the shelf
     if (first_book == NULL) {
         first_book = added_book;
         // just to make sure
         used_shelf->books = first_book;
         return;
     }
+
+    // put book on start of list
+    if (position == 0 && first_book != NULL) {
+        added_book->next = first_book;
+        used_shelf->books = added_book;
+    }
+    /*
     while (1) {
         if (first_book->next == NULL) {
             first_book->next = added_book;
             return;
         }
         first_book = first_book->next;
+    }
+    */
+
+    // iter through shelf linked list till we either hit the end or we reach
+    // position
+    for (int index = 0; index < position; index++) {
+        if (first_book->next == NULL) {
+            first_book->next = added_book;
+            return;
+        }
+        first_book = first_book->next;
+    }
+
+    // if we hit mid position
+    if (first_book->next != NULL) {
+        temp = first_book->next;
+        added_book->next = temp;
+        first_book = added_book;
     }
 }
 
