@@ -19,7 +19,7 @@ Stage 2
 
 ______________
 
-- [ ] Stage 2.1
+- [x] Stage 2.1
 - [ ] Stage 2.2
 - [ ] Stage 2.3
 - [ ] Stage 2.4
