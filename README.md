@@ -40,3 +40,9 @@ ______________
 
 - [ ] Stage 4.1
 - [ ] Stage 4.2
+
+
+Notes
+-----
+- Be careful when using `malloc`: memory must never be allocated in a function
+unless said so in the assignment specs.
