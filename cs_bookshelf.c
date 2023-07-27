@@ -27,6 +27,7 @@ enum book_genre { CLASSICS, FANTASY, MYSTERY, NON_FICTION, SCI_FI, INVALID };
 #define CMD_BOOK_APPEND -999999
 
 enum book_add_type { APPEND, INSERT };
+enum shelf_find_total { TOTAL_PAGES, TOTAL_READ };
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// USER DEFINED TYPES  ////////////////////////////////
@@ -59,6 +60,11 @@ struct book {
 };
 
 // TODO: Any additional structs you want to add can go here:
+
+struct genre_grouping {
+    enum book_genre genre;
+    int count;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////// PROVIDED FUNCTION PROTOTYPE  ////////////////////////////
@@ -93,14 +99,19 @@ char *cli(char *);
 int proc_cmd(char *, char *, struct shelf *);
 
 // function prototypes for handling commandline functions
-void cmd_add_book(char *, int, struct shelf *);
+void cmd_add_book(char *, enum book_add_type, struct shelf *);
 void cmd_print_bookshelf(struct shelf *);
 void cmd_shelf_count_books(struct shelf *);
+void cmd_read_pages(char *, struct shelf *);
+void cmd_show_read_stats(char *, struct shelf *);
 
 // user defined helper functions
 struct book *book_eol(struct book *);
 void add_to_shelf(struct shelf *, struct book *, int);
-int check_book_in_shelf(struct shelf *, char *, char *);
+struct book *check_book_in_shelf(struct shelf *, char *, char *);
+int shelf_totals(struct book *, enum shelf_find_total, int);
+double shelf_rating_avg(struct shelf *);
+struct genre_grouping get_book_grouping(struct shelf *);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -227,6 +238,8 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf *current_shelf) {
 
     sscanf(cli_input, "%c %[^\n]", &cmd_char, args);
     // printf("%s\n", args);
+
+    // if command is given do any of the ff.:
     if (cmd_char == '?') {
         print_usage();
     }
@@ -241,6 +254,12 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf *current_shelf) {
     }
     if (cmd_char == 'i') {
         cmd_add_book(args, INSERT, current_shelf);
+    }
+    if (cmd_char == 'r') {
+        cmd_read_pages(args, current_shelf);
+    }
+    if (cmd_char == 's') {
+        cmd_show_read_stats(args, current_shelf);
     }
 
     // if command is successfully parsed return true (1)
@@ -257,7 +276,8 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf *current_shelf) {
 //     data (char *): provided data
 //     position (int): book position, appended if -1
 //     ptr_shelf (struct shelf *): shelf to operate on
-void cmd_add_book(char *data, int pos_specified, struct shelf *ptr_shelf) {
+void cmd_add_book(char *data, enum book_add_type method_type,
+                  struct shelf *ptr_shelf) {
     struct book *new_book;
     enum book_genre genre;
     int rating, pages_count, pos;
@@ -266,12 +286,12 @@ void cmd_add_book(char *data, int pos_specified, struct shelf *ptr_shelf) {
     char author[MAX_STR_LEN] = "";
     char str_genre[MAX_STR_LEN] = "";
 
-    if (pos_specified == APPEND) {
-        pos = CMD_BOOK_APPEND;
+    if (method_type == APPEND) {
+        pos = 999999;
         sscanf(data, " %s %s %s %d %d", title, author, str_genre, &rating,
                &pages_count);
-    } 
-    if (pos_specified == INSERT) {
+    }
+    if (method_type == INSERT) {
         sscanf(data, " %d %s %s %s %d %d", &pos, title, author, str_genre,
                &rating, &pages_count);
     }
@@ -280,7 +300,7 @@ void cmd_add_book(char *data, int pos_specified, struct shelf *ptr_shelf) {
 
     // error checking
     if (pos < 0) {
-        printf("ERROR: n must be at least 0\n"); 
+        printf("ERROR: n must be at least 0\n");
         return;
     }
     if (genre == INVALID) {
@@ -295,7 +315,7 @@ void cmd_add_book(char *data, int pos_specified, struct shelf *ptr_shelf) {
         printf("ERROR: Page count should be positive\n");
         return;
     }
-    if (check_book_in_shelf(ptr_shelf, title, author)) {
+    if (check_book_in_shelf(ptr_shelf, title, author) != NULL) {
         printf("ERROR: a book with title: '%s' by '%s' already exists in this "
                "shelf\n",
                title, author);
@@ -304,10 +324,10 @@ void cmd_add_book(char *data, int pos_specified, struct shelf *ptr_shelf) {
 
     new_book = create_book(title, author, genre, rating, pages_count);
     add_to_shelf(ptr_shelf, new_book, pos);
-    if (pos_specified == APPEND) {
+    if (method_type == APPEND) {
         printf("Book: '%s' added!\n", new_book->title);
     }
-    if (pos_specified == INSERT) {
+    if (method_type == INSERT) {
         printf("Book: '%s' inserted!\n", new_book->title);
     }
 }
@@ -315,13 +335,10 @@ void cmd_add_book(char *data, int pos_specified, struct shelf *ptr_shelf) {
 // helper function for adding book to shelf
 void add_to_shelf(struct shelf *used_shelf, struct book *added_book,
                   int position) {
-    struct book *temp;
+    // struct book *temp;
     struct book *first_book = used_shelf->books;
     int node_index;
 
-    if (position == CMD_BOOK_APPEND) { 
-        position = 999999;
-    }
     // if there is no books in the shelf
     if (first_book == NULL) {
         first_book = added_book;
@@ -351,17 +368,15 @@ void add_to_shelf(struct shelf *used_shelf, struct book *added_book,
         first_book->next = added_book;
         return;
     }
-    
-    // if we hit mid position
-    temp = first_book->next;
-    first_book->next = added_book;
-    added_book->next = temp;
 
+    // if we hit mid position
+    added_book->next = first_book->next;
+    first_book->next = added_book;
 }
 
 // helper function for checking if book exists
-int check_book_in_shelf(struct shelf *shelf_checked, char *title,
-                        char *author) {
+struct book *check_book_in_shelf(struct shelf *shelf_checked, char *title,
+                                 char *author) {
     struct book *current_book;
 
     current_book = shelf_checked->books;
@@ -369,12 +384,12 @@ int check_book_in_shelf(struct shelf *shelf_checked, char *title,
     while (current_book != NULL) {
         if (!strcmp(current_book->title, title) &&
             !strcmp(current_book->author, author)) {
-            return 1;
+            return current_book;
         }
         current_book = current_book->next;
     }
 
-    return 0;
+    return NULL;
 }
 
 // STAGE 1.4
@@ -400,6 +415,10 @@ void cmd_print_bookshelf(struct shelf *ptr_shelf) {
 }
 
 // STAGE 1.5
+
+// count books in selected shelf
+// Parameters:
+//     ptr_shelf (struct shelf *): selected shelf
 void cmd_shelf_count_books(struct shelf *ptr_shelf) {
     unsigned int count;
     struct book *next_book;
@@ -423,6 +442,122 @@ void cmd_shelf_count_books(struct shelf *ptr_shelf) {
     }
 }
 
+// STAGE 2.3
+
+// read book
+void cmd_read_pages(char *data, struct shelf *current_shelf) {
+    unsigned int remaining_pages, pages_to_read;
+    struct book *book_to_read;
+
+    char title[MAX_STR_LEN] = "";
+    char author[MAX_STR_LEN] = "";
+
+    sscanf(data, " %s %s %d", title, author, &pages_to_read);
+
+    book_to_read = check_book_in_shelf(current_shelf, title, author);
+    remaining_pages = book_to_read->pages_count - book_to_read->pages_read;
+
+    if (remaining_pages < pages_to_read) {
+        printf("ERROR: cannot read %d pages, there are only %d left to read\n",
+               pages_to_read, remaining_pages);
+        return;
+    }
+
+    book_to_read->pages_read += pages_to_read;
+    printf("Pages read for '%s' has been increased by %d\n", title,
+           pages_to_read);
+}
+
+// STAGE 2.4
+
+// show read stats
+void cmd_show_read_stats(char *data, struct shelf *current_shelf) {
+    int total_read, total_pages;
+    struct genre_grouping group;
+    double average_rating;
+
+    if (current_shelf->books == NULL) {
+        printf("No books on this shelf, so no stats to display!\n");
+    }
+
+    total_read = shelf_totals(current_shelf->books, TOTAL_READ, 0);
+    total_pages = shelf_totals(current_shelf->books, TOTAL_PAGES, 0);
+    average_rating = shelf_rating_avg(current_shelf);
+    group = get_book_grouping(current_shelf);
+
+    print_reading_stats(average_rating, total_read, total_pages, group.genre,
+                        group.count);
+}
+
+// helper function for getting the average rating of books in a shelf
+double shelf_rating_avg(struct shelf *current_shelf) {
+    double sum;
+    int count;
+    struct book *current_book;
+
+    sum = 0;
+    count = 0;
+    current_book = current_shelf->books;
+    while (current_book != NULL) {
+        sum += current_book->rating;
+        count += 1;
+        current_book = current_book->next;
+    }
+
+    return sum / count;
+}
+
+// helper function for getting either the total amount of pages or the total
+// amount of pages read
+// the function is recursive
+int shelf_totals(struct book *current_book, enum shelf_find_total select_stat,
+                 int value) {
+    // if we finish going through the list return the final total
+    if (current_book == NULL) {
+        return value;
+    }
+
+    // traverse through the list a add all pages
+    if (select_stat == TOTAL_PAGES) {
+        return shelf_totals(current_book->next, TOTAL_PAGES,
+                            value + current_book->pages_count);
+    }
+    if (select_stat == TOTAL_READ) {
+        return shelf_totals(current_book->next, TOTAL_READ,
+                            value + current_book->pages_read);
+    }
+
+    // if something weird comes up
+    return value;
+}
+
+// TODO: make it so that the biggest group is returned
+// return the biggest grouping
+struct genre_grouping get_book_grouping(struct shelf *s_shelf) {
+    struct book *current_book;
+    enum book_genre genre;
+    int count;
+    struct genre_grouping genre_group;
+
+    current_book = s_shelf->books;
+    count = 1;
+    genre = current_book->genre;
+
+    while (current_book != NULL) {
+        if (current_book->genre != genre) {
+            genre = current_book->genre;
+            count = 1;
+        } else {
+            count += 1;
+        }
+        current_book = current_book->next;
+    }
+
+    genre_group.count = count;
+    genre_group.genre = genre;
+
+    return genre_group;
+}
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  PROVIDED FUNCTIONS  ///////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////

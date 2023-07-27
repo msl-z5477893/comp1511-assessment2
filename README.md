@@ -20,7 +20,7 @@ Stage 2
 ______________
 
 - [x] Stage 2.1
-- [ ] Stage 2.2
+- [x] Stage 2.2
 - [ ] Stage 2.3
 - [ ] Stage 2.4
 
@@ -46,3 +46,10 @@ Notes
 -----
 - Be careful when using `malloc`: memory must never be allocated in a function
 unless said so in the assignment specs.
+- To insert into a linked list assign  `next` pointer of the node rather than
+reassigning the structure itself.
+
+```c
+new_node->next = anchor_node->next;
+anchor_node->next = new_node;
+```
