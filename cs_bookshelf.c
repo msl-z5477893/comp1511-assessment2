@@ -304,7 +304,12 @@ void cmd_add_book(char *data, int pos_specified, struct shelf *ptr_shelf) {
 
     new_book = create_book(title, author, genre, rating, pages_count);
     add_to_shelf(ptr_shelf, new_book, pos);
-    printf("Book: '%s' added!\n", new_book->title);
+    if (pos_specified == APPEND) {
+        printf("Book: '%s' added!\n", new_book->title);
+    }
+    if (pos_specified == INSERT) {
+        printf("Book: '%s' inserted!\n", new_book->title);
+    }
 }
 
 // helper function for adding book to shelf
