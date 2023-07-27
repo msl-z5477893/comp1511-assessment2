@@ -26,6 +26,8 @@ enum book_genre { CLASSICS, FANTASY, MYSTERY, NON_FICTION, SCI_FI, INVALID };
 #define MAX_CLI_CHARS 256
 #define CMD_BOOK_APPEND -999999
 
+enum book_add_type { APPEND, INSERT };
+
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// USER DEFINED TYPES  ////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -229,7 +231,7 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf *current_shelf) {
         print_usage();
     }
     if (cmd_char == 'a') {
-        cmd_add_book(args, CMD_BOOK_APPEND, current_shelf);
+        cmd_add_book(args, APPEND, current_shelf);
     }
     if (cmd_char == 'p') {
         cmd_print_bookshelf(current_shelf);
@@ -238,7 +240,7 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf *current_shelf) {
         cmd_shelf_count_books(current_shelf);
     }
     if (cmd_char == 'i') {
-        cmd_add_book(args, 0, current_shelf);
+        cmd_add_book(args, INSERT, current_shelf);
     }
 
     // if command is successfully parsed return true (1)
@@ -255,7 +257,7 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf *current_shelf) {
 //     data (char *): provided data
 //     position (int): book position, appended if -1
 //     ptr_shelf (struct shelf *): shelf to operate on
-void cmd_add_book(char *data, int position, struct shelf *ptr_shelf) {
+void cmd_add_book(char *data, int pos_specified, struct shelf *ptr_shelf) {
     struct book *new_book;
     enum book_genre genre;
     int rating, pages_count, pos;
@@ -264,10 +266,12 @@ void cmd_add_book(char *data, int position, struct shelf *ptr_shelf) {
     char author[MAX_STR_LEN] = "";
     char str_genre[MAX_STR_LEN] = "";
 
-    if (position == CMD_BOOK_APPEND) {
+    if (pos_specified == APPEND) {
+        pos = CMD_BOOK_APPEND;
         sscanf(data, " %s %s %s %d %d", title, author, str_genre, &rating,
                &pages_count);
-    } else {
+    } 
+    if (pos_specified == INSERT) {
         sscanf(data, " %d %s %s %s %d %d", &pos, title, author, str_genre,
                &rating, &pages_count);
     }
@@ -275,6 +279,10 @@ void cmd_add_book(char *data, int position, struct shelf *ptr_shelf) {
     genre = string_to_genre(str_genre);
 
     // error checking
+    if (pos < 0) {
+        printf("ERROR: n must be at least 0\n"); 
+        return;
+    }
     if (genre == INVALID) {
         printf("ERROR: Invalid book genre\n");
         return;
@@ -302,6 +310,9 @@ void cmd_add_book(char *data, int position, struct shelf *ptr_shelf) {
 // helper function for adding book to shelf
 void add_to_shelf(struct shelf *used_shelf, struct book *added_book,
                   int position) {
+    if (position == CMD_BOOK_APPEND) { 
+        position = 999999;
+    }
     struct book *temp;
     struct book *first_book = used_shelf->books;
 
@@ -317,17 +328,8 @@ void add_to_shelf(struct shelf *used_shelf, struct book *added_book,
     if (position == 0 && first_book != NULL) {
         added_book->next = first_book;
         used_shelf->books = added_book;
+        return;
     }
-    /*
-    while (1) {
-        if (first_book->next == NULL) {
-            first_book->next = added_book;
-            return;
-        }
-        first_book = first_book->next;
-    }
-    */
-
     // iter through shelf linked list till we either hit the end or we reach
     // position
     for (int index = 0; index < position; index++) {
