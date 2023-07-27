@@ -1,5 +1,5 @@
 CC := dcc
-FLAGS := --leak-check
+FLAGS := -Werror --leak-check
 TARGET := cs_bookshelf
 
 build:

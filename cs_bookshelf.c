@@ -315,12 +315,13 @@ void cmd_add_book(char *data, int pos_specified, struct shelf *ptr_shelf) {
 // helper function for adding book to shelf
 void add_to_shelf(struct shelf *used_shelf, struct book *added_book,
                   int position) {
+    struct book *temp;
+    struct book *first_book = used_shelf->books;
+    int node_index;
+
     if (position == CMD_BOOK_APPEND) { 
         position = 999999;
     }
-    struct book *temp;
-    struct book *first_book = used_shelf->books;
-
     // if there is no books in the shelf
     if (first_book == NULL) {
         first_book = added_book;
@@ -337,20 +338,25 @@ void add_to_shelf(struct shelf *used_shelf, struct book *added_book,
     }
     // iter through shelf linked list till we either hit the end or we reach
     // position
-    for (int index = 0; index < position; index++) {
+    node_index = 0;
+    while (node_index < position - 1) {
         if (first_book->next == NULL) {
-            first_book->next = added_book;
-            return;
+            break;
         }
         first_book = first_book->next;
+        node_index += 1;
     }
 
-    // if we hit mid position
-    if (first_book->next != NULL) {
-        temp = first_book->next;
-        added_book->next = temp;
-        first_book = added_book;
+    if (first_book->next == NULL) {
+        first_book->next = added_book;
+        return;
     }
+    
+    // if we hit mid position
+    temp = first_book->next;
+    first_book->next = added_book;
+    added_book->next = temp;
+
 }
 
 // helper function for checking if book exists
