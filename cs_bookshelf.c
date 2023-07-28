@@ -64,6 +64,7 @@ struct book {
 struct genre_grouping {
     enum book_genre genre;
     int count;
+    struct genre_grouping *next;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -103,7 +104,7 @@ void cmd_add_book(char *, enum book_add_type, struct shelf *);
 void cmd_print_bookshelf(struct shelf *);
 void cmd_shelf_count_books(struct shelf *);
 void cmd_read_pages(char *, struct shelf *);
-void cmd_show_read_stats(char *, struct shelf *);
+void cmd_show_read_stats(struct shelf *);
 
 // user defined helper functions
 struct book *book_eol(struct book *);
@@ -111,7 +112,10 @@ void add_to_shelf(struct shelf *, struct book *, int);
 struct book *check_book_in_shelf(struct shelf *, char *, char *);
 int shelf_totals(struct book *, enum shelf_find_total, int);
 double shelf_rating_avg(struct shelf *);
-struct genre_grouping get_book_grouping(struct shelf *);
+struct genre_grouping *get_book_grouping(struct shelf *);
+struct genre_grouping *add_book_grouping(struct book *,
+                                         struct genre_grouping *);
+void free_genre_grouping(struct genre_grouping *head);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -259,7 +263,7 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf *current_shelf) {
         cmd_read_pages(args, current_shelf);
     }
     if (cmd_char == 's') {
-        cmd_show_read_stats(args, current_shelf);
+        cmd_show_read_stats(current_shelf);
     }
 
     // if command is successfully parsed return true (1)
@@ -471,9 +475,9 @@ void cmd_read_pages(char *data, struct shelf *current_shelf) {
 // STAGE 2.4
 
 // show read stats
-void cmd_show_read_stats(char *data, struct shelf *current_shelf) {
+void cmd_show_read_stats(struct shelf *current_shelf) {
     int total_read, total_pages;
-    struct genre_grouping group;
+    struct genre_grouping *group;
     double average_rating;
 
     if (current_shelf->books == NULL) {
@@ -485,8 +489,10 @@ void cmd_show_read_stats(char *data, struct shelf *current_shelf) {
     average_rating = shelf_rating_avg(current_shelf);
     group = get_book_grouping(current_shelf);
 
-    print_reading_stats(average_rating, total_read, total_pages, group.genre,
-                        group.count);
+    print_reading_stats(average_rating, total_read, total_pages, group->genre,
+                        group->count);
+
+    free(group);
 }
 
 // helper function for getting the average rating of books in a shelf
@@ -533,30 +539,85 @@ int shelf_totals(struct book *current_book, enum shelf_find_total select_stat,
 
 // TODO: make it so that the biggest group is returned
 // return the biggest grouping
-struct genre_grouping get_book_grouping(struct shelf *s_shelf) {
+struct genre_grouping *get_book_grouping(struct shelf *s_shelf) {
     struct book *current_book;
-    enum book_genre genre;
-    int count;
-    struct genre_grouping genre_group;
+    struct genre_grouping *biggest_group, *gl_head, *gl_ptr;
 
     current_book = s_shelf->books;
-    count = 1;
-    genre = current_book->genre;
+    biggest_group = malloc(sizeof(struct genre_grouping));
+    biggest_group->next = NULL;
+    gl_head = NULL;
 
+    // create list of book groupings
     while (current_book != NULL) {
-        if (current_book->genre != genre) {
-            genre = current_book->genre;
-            count = 1;
-        } else {
-            count += 1;
-        }
+        gl_head = add_book_grouping(current_book, gl_head);
         current_book = current_book->next;
     }
 
-    genre_group.count = count;
-    genre_group.genre = genre;
+    // get the biggest group in list
+    biggest_group->genre = gl_head->genre;
+    biggest_group->count = gl_head->count;
+    gl_ptr = gl_head;
+    while (gl_ptr != NULL) {
+        if (biggest_group->count > gl_ptr->count) {
+            biggest_group->genre = gl_ptr->genre;
+            biggest_group->count = gl_ptr->count;
+        }
+        gl_ptr = gl_ptr->next;
+    }
 
-    return genre_group;
+    free_genre_grouping(gl_head);
+
+    return biggest_group;
+}
+
+// create a list of books
+// return head of book group list
+struct genre_grouping *add_book_grouping(struct book *sel_book,
+                                         struct genre_grouping *head) {
+    enum book_genre genre;
+    struct genre_grouping *genre_group, *list_ptr;
+
+    genre = sel_book->genre;
+
+    // start the list if no list
+    if (head == NULL) {
+        genre_group = malloc(sizeof(struct genre_grouping));
+        genre_group->genre = genre;
+        genre_group->count = 1;
+        genre_group->next = NULL;
+        head = genre_group;
+        return head;
+    }
+
+    // traverse to end
+    list_ptr = head;
+    while (list_ptr->next != NULL) {
+        list_ptr = list_ptr->next;
+    }
+
+    // if same genre, add to book group
+    if (list_ptr->genre == genre) {
+        list_ptr->count += 1;
+    } else {
+        genre_group = malloc(sizeof(struct genre_grouping));
+        genre_group->genre = genre;
+        genre_group->count = 1;
+        genre_group->next = NULL;
+        list_ptr->next = genre_group;
+    }
+
+    return head;
+}
+
+// free genre_grouping list
+void free_genre_grouping(struct genre_grouping *head) {
+    struct genre_grouping *free_ptr;
+    while (head != NULL) {
+        free_ptr = head;
+        head = head->next;
+        free(free_ptr);
+    }
 }
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  PROVIDED FUNCTIONS  ///////////////////////////////
