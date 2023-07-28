@@ -112,7 +112,7 @@ void add_to_shelf(struct shelf *, struct book *, int);
 struct book *check_book_in_shelf(struct shelf *, char *, char *);
 int shelf_totals(struct book *, enum shelf_find_total, int);
 double shelf_rating_avg(struct shelf *);
-struct genre_grouping *get_book_grouping(struct shelf *);
+struct genre_grouping *get_book_groupings(struct shelf *);
 struct genre_grouping *add_book_grouping(struct book *,
                                          struct genre_grouping *);
 void free_genre_grouping(struct genre_grouping *head);
@@ -487,7 +487,7 @@ void cmd_show_read_stats(struct shelf *current_shelf) {
     total_read = shelf_totals(current_shelf->books, TOTAL_READ, 0);
     total_pages = shelf_totals(current_shelf->books, TOTAL_PAGES, 0);
     average_rating = shelf_rating_avg(current_shelf);
-    group = get_book_grouping(current_shelf);
+    group = get_book_groupings(current_shelf);
 
     print_reading_stats(average_rating, total_read, total_pages, group->genre,
                         group->count);
@@ -539,7 +539,7 @@ int shelf_totals(struct book *current_book, enum shelf_find_total select_stat,
 
 // TODO: make it so that the biggest group is returned
 // return the biggest grouping
-struct genre_grouping *get_book_grouping(struct shelf *s_shelf) {
+struct genre_grouping *get_book_groupings(struct shelf *s_shelf) {
     struct book *current_book;
     struct genre_grouping *biggest_group, *gl_head, *gl_ptr;
 
@@ -559,7 +559,7 @@ struct genre_grouping *get_book_grouping(struct shelf *s_shelf) {
     biggest_group->count = gl_head->count;
     gl_ptr = gl_head;
     while (gl_ptr != NULL) {
-        if (biggest_group->count > gl_ptr->count) {
+        if (gl_ptr->count > biggest_group->count) {
             biggest_group->genre = gl_ptr->genre;
             biggest_group->count = gl_ptr->count;
         }
