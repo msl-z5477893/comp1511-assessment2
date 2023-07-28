@@ -450,13 +450,18 @@ void cmd_shelf_count_books(struct shelf *ptr_shelf) {
 
 // read book
 void cmd_read_pages(char *data, struct shelf *current_shelf) {
-    unsigned int remaining_pages, pages_to_read;
+    int remaining_pages, pages_to_read;
     struct book *book_to_read;
 
     char title[MAX_STR_LEN] = "";
     char author[MAX_STR_LEN] = "";
 
     sscanf(data, " %s %s %d", title, author, &pages_to_read);
+
+    if (pages_to_read < 1) { 
+        printf("ERROR: n must be a positive integer\n"); 
+        return;
+    }
 
     book_to_read = check_book_in_shelf(current_shelf, title, author);
     if (book_to_read == NULL) {
