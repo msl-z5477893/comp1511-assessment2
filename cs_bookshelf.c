@@ -482,6 +482,7 @@ void cmd_show_read_stats(struct shelf *current_shelf) {
 
     if (current_shelf->books == NULL) {
         printf("No books on this shelf, so no stats to display!\n");
+        return;
     }
 
     total_read = shelf_totals(current_shelf->books, TOTAL_READ, 0);
