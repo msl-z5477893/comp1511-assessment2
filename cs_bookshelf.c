@@ -459,8 +459,12 @@ void cmd_read_pages(char *data, struct shelf *current_shelf) {
     sscanf(data, " %s %s %d", title, author, &pages_to_read);
 
     book_to_read = check_book_in_shelf(current_shelf, title, author);
-    remaining_pages = book_to_read->pages_count - book_to_read->pages_read;
+    if (book_to_read == NULL) {
+        printf("ERROR: No book '%s' by '%s' exists\n", title, author); 
+        return;
+    }
 
+    remaining_pages = book_to_read->pages_count - book_to_read->pages_read;
     if (remaining_pages < pages_to_read) {
         printf("ERROR: cannot read %d pages, there are only %d left to read\n",
                pages_to_read, remaining_pages);
