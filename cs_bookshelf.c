@@ -122,6 +122,8 @@ struct genre_grouping *add_book_grouping(struct book *,
 void free_genre_grouping(struct genre_grouping *);
 struct shelf *get_shelf(struct shelf *, char *);
 int shelf_book_count(struct shelf *);
+void free_all(struct shelf *);
+void free_book_in_shelves(struct book *);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -154,7 +156,7 @@ int main(void) {
 
     // free memory
     free(commandline);
-    free(shelf_list_head);
+    free_all(shelf_list_head);
 
     printf("\nGoodbye\n");
 
@@ -170,6 +172,7 @@ int main(void) {
 // allocates a shelf in memory
 //
 // Parameters:
+    // void free_book_in_shelves(struct book *);
 //      name (char[]): name of shelf
 // Returns:
 //      struct shelf *
@@ -783,6 +786,29 @@ int shelf_book_count(struct shelf *current_shelf) {
     }
 
     return count;
+}
+
+// free functions
+// for freeing all used memory after running the program
+
+void free_all(struct shelf *head_shelf) {
+    struct shelf *ptr, *trash;
+    ptr = head_shelf;
+    while (ptr != NULL) {
+        free_book_in_shelves(ptr->books);
+        trash = ptr;
+        ptr = ptr->next;
+        free(trash); 
+    }
+}
+void free_book_in_shelves(struct book *head) {
+    struct book *ptr, *trash;
+    ptr = head;
+    while (ptr != NULL) {
+        trash = ptr;
+        ptr = ptr->next;
+        free(trash);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
