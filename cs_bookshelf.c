@@ -28,6 +28,7 @@ enum book_genre { CLASSICS, FANTASY, MYSTERY, NON_FICTION, SCI_FI, INVALID };
 
 enum book_add_type { APPEND, INSERT };
 enum shelf_find_total { TOTAL_PAGES, TOTAL_READ };
+enum shelf_ptr_move { NEXT, PREVIOUS };
 
 ////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// USER DEFINED TYPES  ////////////////////////////////
@@ -97,7 +98,7 @@ struct book *create_book(char title[MAX_STR_LEN], char author[MAX_STR_LEN],
                          enum book_genre genre, int rating, int pages_count);
 // TODO: Put your function prototypes here
 char *cli(char *);
-int proc_cmd(char *, char *, struct shelf *);
+int proc_cmd(char *, char *, struct shelf *, struct shelf *);
 
 // function prototypes for handling commandline functions
 void cmd_add_book(char *, enum book_add_type, struct shelf *);
@@ -105,6 +106,9 @@ void cmd_print_bookshelf(struct shelf *);
 void cmd_shelf_count_books(struct shelf *);
 void cmd_read_pages(char *, struct shelf *);
 void cmd_show_read_stats(struct shelf *);
+void cmd_add_shelf(struct shelf *, char *);
+void cmd_switch_shelf(struct shelf *, struct shelf *, enum shelf_ptr_move);
+void cmd_print_shelves(struct shelf *, struct shelf *);
 
 // user defined helper functions
 struct book *book_eol(struct book *);
@@ -115,7 +119,9 @@ double shelf_rating_avg(struct shelf *);
 struct genre_grouping *get_book_groupings(struct shelf *);
 struct genre_grouping *add_book_grouping(struct book *,
                                          struct genre_grouping *);
-void free_genre_grouping(struct genre_grouping *head);
+void free_genre_grouping(struct genre_grouping *);
+struct shelf *get_shelf(struct shelf *, char *);
+int shelf_book_count(struct shelf *);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -124,11 +130,12 @@ int main(void) {
     char *commandline, *loop_check;
     unsigned int buf_size;
     int running;
-    struct shelf *head_shelf;
+    struct shelf *shelf_list_head, *shelf_list_ptr;
 
     // init head shelf
-    char init_shelf_name[MAX_STR_LEN] = "tbr";
-    head_shelf = create_shelf(init_shelf_name);
+    char sl_name[MAX_STR_LEN] = "tbr";
+    shelf_list_head = create_shelf(sl_name);
+    shelf_list_ptr = shelf_list_head;
 
     // init cli buffer
     buf_size = MAX_CLI_CHARS * sizeof(char);
@@ -141,12 +148,13 @@ int main(void) {
     while (running) {
         printf("Enter command: ");
         loop_check = cli(commandline);
-        running = proc_cmd(commandline, loop_check, head_shelf);
+        running =
+            proc_cmd(commandline, loop_check, shelf_list_head, shelf_list_ptr);
     }
 
     // free memory
     free(commandline);
-    free(head_shelf);
+    free(shelf_list_head);
 
     printf("\nGoodbye\n");
 
@@ -230,7 +238,8 @@ char *cli(char *i_buffer) {
 // Parameters:
 //     cli_input (char *): command entered by user
 //     shelf (struct shelf *): shelf to operate on
-int proc_cmd(char *cli_input, char *loopback, struct shelf *current_shelf) {
+int proc_cmd(char *cli_input, char *loopback, struct shelf *head_shelf,
+             struct shelf *current_shelf) {
     char cmd_char, *args;
 
     // return false (0) if ctrl-d
@@ -264,6 +273,21 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf *current_shelf) {
     }
     if (cmd_char == 's') {
         cmd_show_read_stats(current_shelf);
+    }
+    if (cmd_char == 'A') {
+        cmd_add_shelf(head_shelf, args);
+        printf("In shelf '%s'\n", current_shelf->name);
+    }
+    if (cmd_char == '>') {
+        cmd_switch_shelf(current_shelf, head_shelf, NEXT);
+        printf("In shelf '%s'\n", current_shelf->name);
+    }
+    if (cmd_char == '<') {
+        cmd_switch_shelf(current_shelf, head_shelf, PREVIOUS);
+        printf("In shelf '%s'\n", current_shelf->name);
+    }
+    if (cmd_char == 'P') {
+        cmd_print_shelves(head_shelf, current_shelf);
     }
 
     // if command is successfully parsed return true (1)
@@ -458,14 +482,14 @@ void cmd_read_pages(char *data, struct shelf *current_shelf) {
 
     sscanf(data, " %s %s %d", title, author, &pages_to_read);
 
-    if (pages_to_read < 1) { 
-        printf("ERROR: n must be a positive integer\n"); 
+    if (pages_to_read < 1) {
+        printf("ERROR: n must be a positive integer\n");
         return;
     }
 
     book_to_read = check_book_in_shelf(current_shelf, title, author);
     if (book_to_read == NULL) {
-        printf("ERROR: No book '%s' by '%s' exists\n", title, author); 
+        printf("ERROR: No book '%s' by '%s' exists\n", title, author);
         return;
     }
 
@@ -547,7 +571,6 @@ int shelf_totals(struct book *current_book, enum shelf_find_total select_stat,
     return value;
 }
 
-// TODO: make it so that the biggest group is returned
 // return the biggest grouping
 struct genre_grouping *get_book_groupings(struct shelf *s_shelf) {
     struct book *current_book;
@@ -629,6 +652,139 @@ void free_genre_grouping(struct genre_grouping *head) {
         free(free_ptr);
     }
 }
+
+// STAGE 3.1
+
+// add a new shelf
+void cmd_add_shelf(struct shelf *head_shelf, char *args) {
+    struct shelf *s_list_ptr, *new_shelf;
+
+    char name[MAX_STR_LEN] = "";
+    sscanf(args, " %s", name);
+
+    if (get_shelf(head_shelf, name) != NULL) {
+        printf("ERROR: a shelf with name '%s' already exists\n", name);
+        return;
+    }
+
+    new_shelf = create_shelf(name);
+
+    // if only the default shelf 'tbr' exists
+    if (head_shelf->next == NULL) {
+        if (strcmp(new_shelf->name, name) < 0) {
+            new_shelf->next = head_shelf;
+            head_shelf = new_shelf;
+            return;
+        }
+        head_shelf->next = new_shelf;
+        return;
+    }
+
+    // traverse the shelf list
+    s_list_ptr = head_shelf;
+    while (s_list_ptr->next != NULL) {
+        if (strcmp(s_list_ptr->name, name) < 0) {
+            break;
+        }
+        s_list_ptr = s_list_ptr->next;
+    }
+
+    // if we hit end of list
+    if (s_list_ptr->next == NULL) {
+        s_list_ptr->next = new_shelf;
+        return;
+    }
+
+    // if we hit mid position
+    new_shelf->next = s_list_ptr->next;
+    s_list_ptr->next = new_shelf;
+}
+
+// helper function for finding a shelf
+struct shelf *get_shelf(struct shelf *head_shelf, char *name) {
+    struct shelf *list_ptr;
+
+    list_ptr = head_shelf;
+    while (list_ptr != NULL) {
+        if (!strcmp(list_ptr->name, name)) {
+            return list_ptr;
+        }
+        list_ptr = list_ptr->next;
+    }
+    return NULL;
+}
+
+// STAGE 3.2
+
+// go to next or previous shelf
+void cmd_switch_shelf(struct shelf *current_shelf, struct shelf *head_shelf,
+                      enum shelf_ptr_move direction) {
+    struct shelf *list_ptr;
+
+    if (direction == NEXT) {
+        if (current_shelf->next == NULL) {
+            current_shelf = head_shelf;
+            return;
+        }
+        current_shelf = current_shelf->next;
+        return;
+    }
+
+    // when direction == PREVIOUS
+    list_ptr = head_shelf;
+    while (list_ptr->next != NULL) {
+        // if list_ptr points to the shelf before the current shelf
+        // set current_shelf as list_ptr
+        //
+        // note that if current_shelf == head_shelf
+        // this condition wont be fulfilled
+        if (list_ptr->next == current_shelf) {
+            current_shelf = list_ptr;
+            return;
+        }
+        list_ptr = list_ptr->next;
+    }
+    // set tail as current_shelf if we PREVIOUS from head_shelf
+    current_shelf = list_ptr;
+}
+
+// STAGE 3.3
+
+// print all shelves
+void cmd_print_shelves(struct shelf *head_shelf, struct shelf *current_shelf) {
+    struct shelf *ptr;
+    unsigned int count;
+    ptr = head_shelf;
+    count = 0;
+    while (1) {
+        if (ptr == NULL) {
+            return;
+        }
+        print_shelf_summary(current_shelf == ptr, count, ptr->name,
+                            shelf_book_count(ptr));
+        ptr = ptr->next;
+    }
+}
+
+// helper function for counting books
+int shelf_book_count(struct shelf *current_shelf) {
+    struct book *book_ptr;
+    int count;
+
+    if (current_shelf->books == NULL) {
+        return 0;
+    }
+
+    count = 0;
+    book_ptr = current_shelf->books;
+    while (book_ptr->next != NULL) {
+        count += 1;
+        book_ptr = book_ptr->next;
+    }
+
+    return count;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  PROVIDED FUNCTIONS  ///////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////

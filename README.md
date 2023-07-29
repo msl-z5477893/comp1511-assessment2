@@ -21,16 +21,16 @@ ______________
 
 - [x] Stage 2.1
 - [x] Stage 2.2
-- [ ] Stage 2.3
-- [ ] Stage 2.4
+- [x] Stage 2.3
+- [x] Stage 2.4
 
 Stage 3
 
 ______________
 
-- [ ] Stage 3.1
-- [ ] Stage 3.2
-- [ ] Stage 3.3
+- [ ] Stage 3.1 __(ongoing)__
+- [ ] Stage 3.2 __(ongoing)__
+- [ ] Stage 3.3 __(ongoing)__
 - [ ] Stage 3.4
 - [ ] Stage 3.5
 
@@ -41,6 +41,10 @@ ______________
 - [ ] Stage 4.1
 - [ ] Stage 4.2
 
+TODO
+---
+- Fix alphabetical arrangement of shelves.
+- Fix `cmd_switch_shelf()` not working.
 
 Notes
 -----
