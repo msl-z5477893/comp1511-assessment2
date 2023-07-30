@@ -124,6 +124,7 @@ struct shelf *get_shelf(struct shelf *, char *);
 int shelf_book_count(struct shelf *);
 void free_all(struct shelf *);
 void free_book_in_shelves(struct book *);
+void list_place_shelf(struct shelf **, struct shelf *);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -284,6 +285,7 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf **head_shelf,
     // shelf operations
     if (cmd_char == 'A') {
         cmd_add_shelf(head_shelf, args);
+        printf("Current head shelf: %s\n", (*head_shelf)->name);
     }
     if (cmd_char == '>') {
         cmd_switch_shelf(current_shelf, *head_shelf, NEXT);
@@ -662,7 +664,7 @@ void free_genre_grouping(struct genre_grouping *head) {
 
 // add a new shelf
 void cmd_add_shelf(struct shelf **head_shelf, char *args) {
-    struct shelf *s_list_ptr, *new_shelf;
+    struct shelf /**s_list_ptr,*/ *new_shelf;
 
     char name[MAX_STR_LEN] = "";
     sscanf(args, " %s", name);
@@ -674,36 +676,21 @@ void cmd_add_shelf(struct shelf **head_shelf, char *args) {
 
     new_shelf = create_shelf(name);
 
-    // if only the default shelf 'tbr' exists
-    if ((*head_shelf)->next == NULL) {
-        if (strcmp((*head_shelf)->name, name) > 0) {
-            new_shelf->next = *head_shelf;
-            *head_shelf = new_shelf;
-            return;
-        }
-        (*head_shelf)->next = new_shelf;
+    list_place_shelf(head_shelf, new_shelf);
+
+}
+
+void list_place_shelf(struct shelf **pre_shelf, struct shelf *add_shelf) {
+    if (strcmp(add_shelf->name, (*pre_shelf)->name) < 0) {
+        add_shelf->next = *pre_shelf;
+        *pre_shelf = add_shelf;
         return;
     }
-
-    // traverse the shelf list
-    s_list_ptr = *head_shelf;
-    while (s_list_ptr->next != NULL && strcmp(s_list_ptr->name, name) < 0) {
-        /*
-        if (strcmp(s_list_ptr->name, name) > 0) {
-            break;
-        }*/
-        s_list_ptr = s_list_ptr->next;
-    }
-
-    // if we hit end of list
-    if (s_list_ptr->next == NULL) {
-        s_list_ptr->next = new_shelf;
+    if ((*pre_shelf)->next == NULL) {
+        (*pre_shelf)->next = add_shelf;
         return;
     }
-
-    // if we hit mid position
-    new_shelf->next = s_list_ptr->next;
-    s_list_ptr->next = new_shelf;
+    return list_place_shelf(&(*pre_shelf)->next, add_shelf);
 }
 
 // helper function for finding a shelf
