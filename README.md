@@ -43,8 +43,7 @@ ______________
 
 TODO
 ---
-- Fix alphabetical arrangement of shelves.
-- Fix `cmd_switch_shelf()` not working.
+- Fix `access to memory that has already been freed` error in stage 3.5.
 
 Notes
 -----
