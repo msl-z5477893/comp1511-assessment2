@@ -810,7 +810,7 @@ void delete_book(struct book **book_ptr, char *title, char *author) {
     struct book *temp;
     // book dont exist or none left
     if (*book_ptr == NULL) {
-        printf("No book '%s' by '%s' exists\n", title, author);
+        printf("ERROR: No book '%s' by '%s' exists\n", title, author);
         return;
     }
     if (!strcmp((*book_ptr)->title, title) &&
