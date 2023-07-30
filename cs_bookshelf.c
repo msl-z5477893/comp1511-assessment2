@@ -255,7 +255,6 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf **head_shelf,
     args = malloc(MAX_CLI_CHARS);
 
     sscanf(cli_input, "%c %[^\n]", &cmd_char, args);
-    // printf("%s\n", args);
 
     // if command is given do any of the ff.:
     if (cmd_char == '?') {
@@ -285,7 +284,6 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf **head_shelf,
     // shelf operations
     if (cmd_char == 'A') {
         cmd_add_shelf(head_shelf, args);
-        printf("Current head shelf: %s\n", (*head_shelf)->name);
     }
     if (cmd_char == '>') {
         cmd_switch_shelf(current_shelf, *head_shelf, NEXT);
@@ -680,16 +678,24 @@ void cmd_add_shelf(struct shelf **head_shelf, char *args) {
 
 }
 
+// helper function for appending shelf to linked list
+// the list must be arranged in alphabetical order
 void list_place_shelf(struct shelf **pre_shelf, struct shelf *add_shelf) {
+
+    // if add_shelf is lesser than pre_shelf in lexicographical order
     if (strcmp(add_shelf->name, (*pre_shelf)->name) < 0) {
         add_shelf->next = *pre_shelf;
         *pre_shelf = add_shelf;
         return;
     }
+
+    // appending to the end of list
     if ((*pre_shelf)->next == NULL) {
         (*pre_shelf)->next = add_shelf;
         return;
     }
+
+    // if neither applies iterate
     return list_place_shelf(&(*pre_shelf)->next, add_shelf);
 }
 
