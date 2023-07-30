@@ -109,6 +109,8 @@ void cmd_show_read_stats(struct shelf *);
 void cmd_add_shelf(struct shelf **, char *);
 void cmd_switch_shelf(struct shelf **, struct shelf *, enum shelf_ptr_move);
 void cmd_print_shelves(struct shelf *, struct shelf *);
+void cmd_delete_book(struct shelf **, char *);
+void cmd_delete_shelf(struct shelf **, struct shelf **);
 
 // user defined helper functions
 struct book *book_eol(struct book *);
@@ -125,6 +127,7 @@ int shelf_book_count(struct shelf *);
 void free_all(struct shelf *);
 void free_book_in_shelves(struct book *);
 void list_place_shelf(struct shelf **, struct shelf *);
+void delete_book(struct book **, char *, char *);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -151,8 +154,8 @@ int main(void) {
     while (running) {
         printf("Enter command: ");
         loop_check = cli(commandline);
-        running =
-            proc_cmd(commandline, loop_check, &shelf_list_head, &shelf_list_ptr);
+        running = proc_cmd(commandline, loop_check, &shelf_list_head,
+                           &shelf_list_ptr);
     }
 
     // free memory
@@ -293,6 +296,14 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf **head_shelf,
     }
     if (cmd_char == 'P') {
         cmd_print_shelves(*head_shelf, *current_shelf);
+    }
+
+    // delete operations
+    if (cmd_char == 'd') {
+        cmd_delete_book(current_shelf, args);
+    }
+    if (cmd_char == 'D') {
+        cmd_delete_shelf(current_shelf, head_shelf);
     }
 
     // if command is successfully parsed return true (1)
@@ -675,7 +686,6 @@ void cmd_add_shelf(struct shelf **head_shelf, char *args) {
     new_shelf = create_shelf(name);
 
     list_place_shelf(head_shelf, new_shelf);
-
 }
 
 // helper function for appending shelf to linked list
@@ -785,6 +795,69 @@ int shelf_book_count(struct shelf *current_shelf) {
     return count;
 }
 
+// STAGE 3.4
+
+// delete book in a chosen shelf
+void cmd_delete_book(struct shelf **current_shelf, char *arg) {
+    char author[MAX_STR_LEN] = "";
+    char title[MAX_STR_LEN] = "";
+
+    sscanf(arg, " %s %s", title, author);
+    delete_book(&(*current_shelf)->books, title, author);
+}
+
+void delete_book(struct book **book_ptr, char *title, char *author) {
+    struct book *temp;
+    // book dont exist or none left
+    if (*book_ptr == NULL) {
+        printf("No book '%s' by '%s' exists\n", title, author);
+        return;
+    }
+    if (!strcmp((*book_ptr)->title, title) &&
+        !strcmp((*book_ptr)->author, author)) {
+        temp = *book_ptr;
+        *book_ptr = (*book_ptr)->next;
+        free(temp);
+        return;
+    }
+
+    return delete_book(&(*book_ptr)->next, title, author);
+}
+
+// STAGE 3.5
+
+// delete currently selected shelf
+void cmd_delete_shelf(struct shelf **current_shelf, struct shelf **head_shelf) {
+    struct shelf *to_free;
+    char default_shelf_name[MAX_STR_LEN] = "tbr";
+
+    // if there is one shelf left
+    if ((*current_shelf)->next == NULL) {
+        free_book_in_shelves((*current_shelf)->books);
+        free(*current_shelf);
+        if ((*head_shelf)->next != NULL) {
+            *current_shelf = *head_shelf;
+            return;
+        }
+        *current_shelf = create_shelf(default_shelf_name);
+        return;
+    }
+
+    // if selected shelf is head shelf
+    if (!strcmp((*head_shelf)->name, (*current_shelf)->name)) {
+        to_free = *head_shelf;
+        *head_shelf = (*head_shelf)->next;
+        free_book_in_shelves(to_free->books);
+        free(to_free);
+        return;
+    }
+
+    to_free = *current_shelf;
+    *current_shelf = (*current_shelf)->next;
+    free_book_in_shelves(to_free->books);
+    free(to_free);
+}
+
 // free functions
 // for freeing all used memory after running the program
 
@@ -808,7 +881,7 @@ void free_book_in_shelves(struct book *head) {
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////  PROVIDED FUNCTIONS  ///////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 

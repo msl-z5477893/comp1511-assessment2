@@ -28,9 +28,9 @@ Stage 3
 
 ______________
 
-- [ ] Stage 3.1 __(ongoing)__
-- [ ] Stage 3.2 __(ongoing)__
-- [ ] Stage 3.3 __(ongoing)__
+- [x] Stage 3.1 
+- [x] Stage 3.2 
+- [x] Stage 3.3 
 - [ ] Stage 3.4
 - [ ] Stage 3.5
 
