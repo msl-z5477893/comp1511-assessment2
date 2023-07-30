@@ -687,10 +687,11 @@ void cmd_add_shelf(struct shelf **head_shelf, char *args) {
 
     // traverse the shelf list
     s_list_ptr = *head_shelf;
-    while (s_list_ptr->next != NULL) {
+    while (s_list_ptr->next != NULL && strcmp(s_list_ptr->name, name) < 0) {
+        /*
         if (strcmp(s_list_ptr->name, name) > 0) {
             break;
-        }
+        }*/
         s_list_ptr = s_list_ptr->next;
     }
 
