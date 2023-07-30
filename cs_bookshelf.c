@@ -106,8 +106,8 @@ void cmd_print_bookshelf(struct shelf *);
 void cmd_shelf_count_books(struct shelf *);
 void cmd_read_pages(char *, struct shelf *);
 void cmd_show_read_stats(struct shelf *);
-void cmd_add_shelf(struct shelf *, char *);
-void cmd_switch_shelf(struct shelf *, struct shelf *, enum shelf_ptr_move);
+void cmd_add_shelf(struct shelf **, char *);
+void cmd_switch_shelf(struct shelf **, struct shelf *, enum shelf_ptr_move);
 void cmd_print_shelves(struct shelf *, struct shelf *);
 
 // user defined helper functions
@@ -172,7 +172,7 @@ int main(void) {
 // allocates a shelf in memory
 //
 // Parameters:
-    // void free_book_in_shelves(struct book *);
+// void free_book_in_shelves(struct book *);
 //      name (char[]): name of shelf
 // Returns:
 //      struct shelf *
@@ -278,15 +278,15 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf *head_shelf,
         cmd_show_read_stats(current_shelf);
     }
     if (cmd_char == 'A') {
-        cmd_add_shelf(head_shelf, args);
+        cmd_add_shelf(&head_shelf, args);
         printf("In shelf '%s'\n", current_shelf->name);
     }
     if (cmd_char == '>') {
-        cmd_switch_shelf(current_shelf, head_shelf, NEXT);
+        cmd_switch_shelf(&current_shelf, head_shelf, NEXT);
         printf("In shelf '%s'\n", current_shelf->name);
     }
     if (cmd_char == '<') {
-        cmd_switch_shelf(current_shelf, head_shelf, PREVIOUS);
+        cmd_switch_shelf(&current_shelf, head_shelf, PREVIOUS);
         printf("In shelf '%s'\n", current_shelf->name);
     }
     if (cmd_char == 'P') {
@@ -659,13 +659,13 @@ void free_genre_grouping(struct genre_grouping *head) {
 // STAGE 3.1
 
 // add a new shelf
-void cmd_add_shelf(struct shelf *head_shelf, char *args) {
+void cmd_add_shelf(struct shelf **head_shelf, char *args) {
     struct shelf *s_list_ptr, *new_shelf;
 
     char name[MAX_STR_LEN] = "";
     sscanf(args, " %s", name);
 
-    if (get_shelf(head_shelf, name) != NULL) {
+    if (get_shelf(*head_shelf, name) != NULL) {
         printf("ERROR: a shelf with name '%s' already exists\n", name);
         return;
     }
@@ -673,20 +673,20 @@ void cmd_add_shelf(struct shelf *head_shelf, char *args) {
     new_shelf = create_shelf(name);
 
     // if only the default shelf 'tbr' exists
-    if (head_shelf->next == NULL) {
-        if (strcmp(new_shelf->name, name) < 0) {
-            new_shelf->next = head_shelf;
-            head_shelf = new_shelf;
+    if ((*head_shelf)->next == NULL) {
+        if (strcmp((*head_shelf)->name, name) > 0) {
+            new_shelf->next = *head_shelf;
+            *head_shelf = new_shelf;
             return;
         }
-        head_shelf->next = new_shelf;
+        (*head_shelf)->next = new_shelf;
         return;
     }
 
     // traverse the shelf list
-    s_list_ptr = head_shelf;
+    s_list_ptr = *head_shelf;
     while (s_list_ptr->next != NULL) {
-        if (strcmp(s_list_ptr->name, name) < 0) {
+        if (strcmp(s_list_ptr->name, name) > 0) {
             break;
         }
         s_list_ptr = s_list_ptr->next;
@@ -720,16 +720,16 @@ struct shelf *get_shelf(struct shelf *head_shelf, char *name) {
 // STAGE 3.2
 
 // go to next or previous shelf
-void cmd_switch_shelf(struct shelf *current_shelf, struct shelf *head_shelf,
+void cmd_switch_shelf(struct shelf **current_shelf, struct shelf *head_shelf,
                       enum shelf_ptr_move direction) {
     struct shelf *list_ptr;
 
     if (direction == NEXT) {
-        if (current_shelf->next == NULL) {
-            current_shelf = head_shelf;
+        if ((*current_shelf)->next == NULL) {
+            *current_shelf = head_shelf;
             return;
         }
-        current_shelf = current_shelf->next;
+        *current_shelf = (*current_shelf)->next;
         return;
     }
 
@@ -741,14 +741,14 @@ void cmd_switch_shelf(struct shelf *current_shelf, struct shelf *head_shelf,
         //
         // note that if current_shelf == head_shelf
         // this condition wont be fulfilled
-        if (list_ptr->next == current_shelf) {
-            current_shelf = list_ptr;
+        if (!strcmp(list_ptr->next->name, (*current_shelf)->name)) {
+            *current_shelf = list_ptr;
             return;
         }
         list_ptr = list_ptr->next;
     }
     // set tail as current_shelf if we PREVIOUS from head_shelf
-    current_shelf = list_ptr;
+    *current_shelf = list_ptr;
 }
 
 // STAGE 3.3
@@ -763,8 +763,9 @@ void cmd_print_shelves(struct shelf *head_shelf, struct shelf *current_shelf) {
         if (ptr == NULL) {
             return;
         }
-        print_shelf_summary(current_shelf == ptr, count, ptr->name,
-                            shelf_book_count(ptr));
+        print_shelf_summary(!strcmp(ptr->name, current_shelf->name), count,
+                            ptr->name, shelf_book_count(ptr));
+        count += 1;
         ptr = ptr->next;
     }
 }
@@ -778,7 +779,7 @@ int shelf_book_count(struct shelf *current_shelf) {
         return 0;
     }
 
-    count = 0;
+    count = 1;
     book_ptr = current_shelf->books;
     while (book_ptr->next != NULL) {
         count += 1;
@@ -798,7 +799,7 @@ void free_all(struct shelf *head_shelf) {
         free_book_in_shelves(ptr->books);
         trash = ptr;
         ptr = ptr->next;
-        free(trash); 
+        free(trash);
     }
 }
 void free_book_in_shelves(struct book *head) {
