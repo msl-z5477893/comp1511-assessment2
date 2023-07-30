@@ -98,7 +98,7 @@ struct book *create_book(char title[MAX_STR_LEN], char author[MAX_STR_LEN],
                          enum book_genre genre, int rating, int pages_count);
 // TODO: Put your function prototypes here
 char *cli(char *);
-int proc_cmd(char *, char *, struct shelf *, struct shelf *);
+int proc_cmd(char *, char *, struct shelf **, struct shelf **);
 
 // function prototypes for handling commandline functions
 void cmd_add_book(char *, enum book_add_type, struct shelf *);
@@ -151,7 +151,7 @@ int main(void) {
         printf("Enter command: ");
         loop_check = cli(commandline);
         running =
-            proc_cmd(commandline, loop_check, shelf_list_head, shelf_list_ptr);
+            proc_cmd(commandline, loop_check, &shelf_list_head, &shelf_list_ptr);
     }
 
     // free memory
@@ -240,9 +240,10 @@ char *cli(char *i_buffer) {
 // processes cli command
 // Parameters:
 //     cli_input (char *): command entered by user
-//     shelf (struct shelf *): shelf to operate on
-int proc_cmd(char *cli_input, char *loopback, struct shelf *head_shelf,
-             struct shelf *current_shelf) {
+//     head_shelf (struct shelf **): head of list of shelves
+//     current_shelf (struct shelf **): shelf to operate on
+int proc_cmd(char *cli_input, char *loopback, struct shelf **head_shelf,
+             struct shelf **current_shelf) {
     char cmd_char, *args;
 
     // return false (0) if ctrl-d
@@ -259,38 +260,39 @@ int proc_cmd(char *cli_input, char *loopback, struct shelf *head_shelf,
     if (cmd_char == '?') {
         print_usage();
     }
+
+    // book operations
     if (cmd_char == 'a') {
-        cmd_add_book(args, APPEND, current_shelf);
+        cmd_add_book(args, APPEND, *current_shelf);
     }
     if (cmd_char == 'p') {
-        cmd_print_bookshelf(current_shelf);
+        cmd_print_bookshelf(*current_shelf);
     }
     if (cmd_char == 'c') {
-        cmd_shelf_count_books(current_shelf);
+        cmd_shelf_count_books(*current_shelf);
     }
     if (cmd_char == 'i') {
-        cmd_add_book(args, INSERT, current_shelf);
+        cmd_add_book(args, INSERT, *current_shelf);
     }
     if (cmd_char == 'r') {
-        cmd_read_pages(args, current_shelf);
+        cmd_read_pages(args, *current_shelf);
     }
     if (cmd_char == 's') {
-        cmd_show_read_stats(current_shelf);
+        cmd_show_read_stats(*current_shelf);
     }
+
+    // shelf operations
     if (cmd_char == 'A') {
-        cmd_add_shelf(&head_shelf, args);
-        printf("In shelf '%s'\n", current_shelf->name);
+        cmd_add_shelf(head_shelf, args);
     }
     if (cmd_char == '>') {
-        cmd_switch_shelf(&current_shelf, head_shelf, NEXT);
-        printf("In shelf '%s'\n", current_shelf->name);
+        cmd_switch_shelf(current_shelf, *head_shelf, NEXT);
     }
     if (cmd_char == '<') {
-        cmd_switch_shelf(&current_shelf, head_shelf, PREVIOUS);
-        printf("In shelf '%s'\n", current_shelf->name);
+        cmd_switch_shelf(current_shelf, *head_shelf, PREVIOUS);
     }
     if (cmd_char == 'P') {
-        cmd_print_shelves(head_shelf, current_shelf);
+        cmd_print_shelves(*head_shelf, *current_shelf);
     }
 
     // if command is successfully parsed return true (1)
