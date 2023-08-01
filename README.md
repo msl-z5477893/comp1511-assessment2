@@ -31,7 +31,7 @@ ______________
 - [x] Stage 3.1 
 - [x] Stage 3.2 
 - [x] Stage 3.3 
-- [ ] Stage 3.4
+- [x] Stage 3.4
 - [ ] Stage 3.5
 
 Stage 4
@@ -51,6 +51,8 @@ Notes
 unless said so in the assignment specs.
 - To insert into a linked list assign  `next` pointer of the node rather than
 reassigning the structure itself.
+- Stage 3.5 code quality is poor: currently it works but there are potential
+bugs that could come from anywhere.
 
 ```c
 new_node->next = anchor_node->next;

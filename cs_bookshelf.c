@@ -828,34 +828,54 @@ void delete_book(struct book **book_ptr, char *title, char *author) {
 
 // delete currently selected shelf
 void cmd_delete_shelf(struct shelf **current_shelf, struct shelf **head_shelf) {
-    struct shelf *to_free;
+    struct shelf *to_free, *new, *next, *before;
     char default_shelf_name[MAX_STR_LEN] = "tbr";
 
+    // find the shelf before the current one
+    before = *head_shelf;
+    while (before->next != NULL) {
+        if (!strcmp(before->next->name, (*current_shelf)->name)) {
+            break;
+        }
+        before = before->next;
+    }
+
     // if there is one shelf left
+    // or we are on the last shelf
     if ((*current_shelf)->next == NULL) {
-        free_book_in_shelves((*current_shelf)->books);
-        free(*current_shelf);
-        if ((*head_shelf)->next != NULL) {
-            *current_shelf = *head_shelf;
+        if ((*head_shelf)->next == NULL) {
+            new = create_shelf(default_shelf_name);
+            to_free = *head_shelf;
+            free_book_in_shelves(to_free->books);
+            free(to_free);
+            *head_shelf = new;
+            *current_shelf = new;
             return;
         }
-        *current_shelf = create_shelf(default_shelf_name);
+        to_free = *current_shelf;
+        free_book_in_shelves(to_free->books);
+        free(to_free);
+        *current_shelf = *head_shelf;
         return;
     }
+
+    next = (*current_shelf)->next;
 
     // if selected shelf is head shelf
     if (!strcmp((*head_shelf)->name, (*current_shelf)->name)) {
         to_free = *head_shelf;
-        *head_shelf = (*head_shelf)->next;
         free_book_in_shelves(to_free->books);
         free(to_free);
+        *head_shelf = next;
+        *current_shelf = next;
         return;
     }
 
     to_free = *current_shelf;
-    *current_shelf = (*current_shelf)->next;
     free_book_in_shelves(to_free->books);
     free(to_free);
+    *current_shelf = next;
+    before->next = *current_shelf;
 }
 
 // free functions
