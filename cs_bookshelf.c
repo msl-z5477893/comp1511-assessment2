@@ -128,6 +128,8 @@ void free_all(struct shelf *);
 void free_book_in_shelves(struct book *);
 void list_place_shelf(struct shelf **, struct shelf *);
 void delete_book(struct book **, char *, char *);
+struct shelf *get_preceding_shelf(struct shelf *head_shelf,
+                                  struct shelf *current_shelf);
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -831,14 +833,16 @@ void cmd_delete_shelf(struct shelf **current_shelf, struct shelf **head_shelf) {
     struct shelf *to_free, *new, *next, *before;
     char default_shelf_name[MAX_STR_LEN] = "tbr";
 
+    /*
     // find the shelf before the current one
     before = *head_shelf;
-    while (before->next != NULL) {
+    while (before->next != NULL && before != NULL) {
         if (!strcmp(before->next->name, (*current_shelf)->name)) {
             break;
         }
         before = before->next;
     }
+    */
 
     // if there is one shelf left
     // or we are on the last shelf
@@ -853,9 +857,11 @@ void cmd_delete_shelf(struct shelf **current_shelf, struct shelf **head_shelf) {
             return;
         }
         to_free = *current_shelf;
+        before = get_preceding_shelf(*head_shelf, *current_shelf);
+        before->next = NULL;
         free_book_in_shelves(to_free->books);
         free(to_free);
-        *current_shelf = *head_shelf;
+        *current_shelf = before;
         return;
     }
 
@@ -875,7 +881,20 @@ void cmd_delete_shelf(struct shelf **current_shelf, struct shelf **head_shelf) {
     free_book_in_shelves(to_free->books);
     free(to_free);
     *current_shelf = next;
+    before = get_preceding_shelf(*head_shelf, *current_shelf); 
     before->next = *current_shelf;
+}
+
+// helper function for getting the shelf before the selected shelf
+struct shelf *get_preceding_shelf(struct shelf *head_shelf,
+                                  struct shelf *current_shelf) {
+    if (head_shelf->next == NULL || head_shelf == NULL) {
+        return NULL;
+    }
+    if (!strcmp(head_shelf->next->name, current_shelf->name)) {
+        return head_shelf;
+    }
+    return get_preceding_shelf(head_shelf->next, current_shelf);
 }
 
 // free functions
